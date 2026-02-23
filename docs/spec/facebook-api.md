@@ -45,12 +45,13 @@ class GraphError extends Error {
 | `getBusinesses` | GET | `/me/businesses` | User token | `BusinessInfo[]` |
 | `getOwnedWabas` | GET | `/{businessId}/owned_whatsapp_business_accounts` | User token | `WabaInfo[]` |
 | `getWabaInfo` | GET | `/{wabaId}?fields={WABA_FIELDS}` | User token | `WabaInfo` |
-| `getWabaSubscribedApps` | GET | `/{wabaId}/subscribed_apps` | User token | `SubscribedApp[]` |
+| `getWabaSubscribedApps` | GET | `/{wabaId}/subscribed_apps?fields=id,name` | User token | `SubscribedApp[]` |
 | `subscribeWaba` | POST | `/{wabaId}/subscribed_apps` | User token | `{ success: boolean }` |
 | `getPhoneNumbers` | GET | `/{wabaId}/phone_numbers?fields={PHONE_FIELDS}` | User token | `PhoneNumber[]` |
 | `getPages` | GET | `/me/accounts` | User token | `PageInfo[]` |
 | `getPageSubscribedApps` | GET | `/{pageId}/subscribed_apps?fields=id,name,subscribed_fields` | Page token | `SubscribedApp[]` |
 | `subscribePageApp` | POST | `/{pageId}/subscribed_apps?subscribed_fields={PAGE_SUBSCRIBED_FIELDS}` | Page token | `{ success: boolean }` |
+| `getPageIgAccount` | GET | `/{pageId}?fields=instagram_business_account{id,name,username}` | User token | `IgAccount \| null` |
 
 ## Field Constants
 
@@ -78,6 +79,11 @@ messages, message_reactions, messaging_postbacks, message_reads, standby
 ```
 
 Exported as `string[]` (`PAGE_SUBSCRIBED_FIELDS`). Used by `subscribePageApp` (joined with `,`) and `PageSection` (compared against `subscribed_fields` in response). Matches the production backend (interlude). Required since Graph API v3.2.
+
+## Notes
+
+- `getPageIgAccount` returns `null` for expected Graph API errors (code 200 — no IG permission, code 100 — no IG account). Unexpected errors (network, token expiry, rate limiting) propagate to the caller. `PageSection` uses `Promise.allSettled` so IG failures do not block subscription checks.
+- `getWabaSubscribedApps` requests `fields=id,name` to ensure app identity is returned. The `whatsapp_business_api_data` nested field (previously included by default) is no longer returned.
 
 ## WABA Discovery
 

@@ -6,6 +6,7 @@ import type {
   SubscribedApp,
   PhoneNumber,
   PageInfo,
+  IgAccount,
 } from '../types/facebook'
 
 const API_BASE = 'https://graph.facebook.com/v21.0'
@@ -106,7 +107,7 @@ export async function getWabaSubscribedApps(
   token: string,
 ): Promise<SubscribedApp[]> {
   const data = await graphFetch<{ data: SubscribedApp[] }>(
-    `${API_BASE}/${wabaId}/subscribed_apps?access_token=${encodeURIComponent(token)}`,
+    `${API_BASE}/${wabaId}/subscribed_apps?fields=id,name&access_token=${encodeURIComponent(token)}`,
   )
   return data.data
 }
@@ -156,6 +157,24 @@ export const PAGE_SUBSCRIBED_FIELDS = [
   'messages', 'message_reactions', 'messaging_postbacks',
   'message_reads', 'standby',
 ] as const
+
+export async function getPageIgAccount(
+  pageId: string,
+  token: string,
+): Promise<IgAccount | null> {
+  try {
+    const data = await graphFetch<{ instagram_business_account?: IgAccount }>(
+      `${API_BASE}/${pageId}?fields=instagram_business_account{id,name,username}&access_token=${encodeURIComponent(token)}`,
+    )
+    return data.instagram_business_account ?? null
+  } catch (e) {
+    // No IG permission or page has no IG account — expected, return null
+    if (e instanceof GraphError && (e.code === 200 || e.code === 100)) {
+      return null
+    }
+    throw e
+  }
+}
 
 export async function subscribePageApp(
   pageId: string,

@@ -89,3 +89,9 @@ export interface BusinessInfo {
   id: string
   name: string
 }
+
+export interface IgAccount {
+  id: string
+  name?: string
+  username?: string
+}

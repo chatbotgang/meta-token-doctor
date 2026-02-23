@@ -43,7 +43,7 @@ const rawJson = computed(() => {
     </Message>
 
     <template v-else-if="data">
-      <Message v-if="data.error" severity="error">
+      <Message v-if="data.error" severity="error" class="token-error">
         Token error: {{ data.error.message }} (code {{ data.error.code }})
       </Message>
 
@@ -134,6 +134,10 @@ const rawJson = computed(() => {
   align-items: center;
   gap: 0.5rem;
   padding: 1rem 0;
+}
+
+.token-error {
+  margin-bottom: 0.75rem;
 }
 
 .info-grid {

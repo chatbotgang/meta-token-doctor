@@ -52,7 +52,7 @@
 - **File:** `src/components/WabaCard.vue`
 - **Props:** `wabaId: string`
 - **Emits:** `missing(wabaId)`, `subscribed(wabaId)`
-- **Purpose:** Loads single WABA info, subscription status, and phone numbers. Shows Subscribe button if unsubscribed. Uses `onBeforeUnmount` guard to prevent state updates after unmount.
+- **Purpose:** Loads single WABA info, subscription status, and phone numbers. Shows Subscribe button if unsubscribed. Displays subscribing app name(s) below status tag; fallback "Unknown app" if name missing. Uses `onBeforeUnmount` guard to prevent state updates after unmount.
 
 ### PageSection
 
@@ -60,7 +60,7 @@
 - **Props:** none
 - **Emits:** `missing(pageId, pageToken)`, `subscribed(pageId)`
 - **Purpose:** Loads pages from `/me/accounts`, checks each page's subscription status via field-level comparison against `PAGE_SUBSCRIBED_FIELDS`, shows Subscribe button per page. Only rendered by DiagnosticView when the token type is `USER` or `SYSTEM_USER` **and** the token has `pages_show_list` or `pages_manage_metadata` scope (guard is `v-if="hasPageScope"` in DiagnosticView, not in PageSection itself). Page tokens are excluded because `/me/accounts` is not available for page-type tokens. Uses `onBeforeUnmount` guard.
-- **Subscription tri-state:** `subscriptionStatus` is `'full'` (green "Subscribed"), `'partial'` (yellow "Partial" with tooltip listing missing fields), or `'none'` (red "Not Subscribed"). `null` means still loading.
+- **Subscription tri-state:** `subscriptionStatus` is `'full'` (green "Subscribed"), `'partial'` (yellow "Partial" with field tags below — `severity='secondary'` for present, `severity='danger'` for missing), or `'none'` (red "Not Subscribed"). `null` means still loading. Instagram column appears when any page has a connected IG account (`v-if` on computed). IG data fetched per-page via `getPageIgAccount` in parallel with subscription checks.
 - **Emit behavior:** `missing` fires for both `'none'` and `'partial'` status — re-subscribing with correct fields fixes both cases. FixAllButton label says "Missing Subscriptions" which covers partial pages; this is acceptable.
 - **Note:** The `missing` emit includes `pageToken` because page tokens come from the `/me/accounts` response and are not stored centrally — the token must travel alongside the page ID for subscription operations.
 

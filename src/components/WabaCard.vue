@@ -8,7 +8,7 @@ import {
   getPhoneNumbers,
   GraphError,
 } from '../services/facebook'
-import type { WabaInfo, PhoneNumber } from '../types/facebook'
+import type { WabaInfo, PhoneNumber, SubscribedApp } from '../types/facebook'
 import Tag from 'primevue/tag'
 import Button from 'primevue/button'
 import DataTable from 'primevue/datatable'
@@ -32,6 +32,7 @@ onBeforeUnmount(() => { active.value = false })
 const info = ref<WabaInfo | null>(null)
 const phones = ref<PhoneNumber[]>([])
 const isSubscribed = ref<boolean | null>(null)
+const subscribedApps = ref<SubscribedApp[]>([])
 const loading = ref(true)
 const error = ref('')
 const subscribing = ref(false)
@@ -65,6 +66,7 @@ async function loadData() {
   }
 
   if (subsResult.status === 'fulfilled') {
+    subscribedApps.value = subsResult.value
     isSubscribed.value = subsResult.value.length > 0
     if (!isSubscribed.value) {
       emit('missing', props.wabaId)
@@ -89,6 +91,9 @@ async function doSubscribe() {
     if (!active.value) return
     isSubscribed.value = true
     emit('subscribed', props.wabaId)
+    try {
+      subscribedApps.value = await getWabaSubscribedApps(props.wabaId, credentials.token)
+    } catch { /* subscribe succeeded; app list refresh is non-critical */ }
   } catch (e) {
     error.value = humanizeError(e)
   } finally {
@@ -130,6 +135,15 @@ onMounted(loadData)
         <span v-if="info.account_review_status"><b>Review:</b> {{ info.account_review_status }}</span>
         <span v-if="info.business_verification_status"><b>Verification:</b> {{ info.business_verification_status }}</span>
         <span v-if="info.ownership_type"><b>Ownership:</b> {{ info.ownership_type }}</span>
+      </div>
+
+      <div v-if="subscribedApps.length > 0" class="subscribed-apps">
+        <b>Subscribed by:</b>
+        <span v-for="(app, i) in subscribedApps" :key="app.id ?? i">
+          {{ app.name ?? 'Unknown app' }}
+          <span v-if="app.id" class="app-id">({{ app.id }})</span>
+          <span v-if="i < subscribedApps.length - 1">, </span>
+        </span>
       </div>
 
       <Button
@@ -194,6 +208,15 @@ onMounted(loadData)
   gap: 1rem;
   margin: 0.75rem 0;
   font-size: 0.9rem;
+}
+
+.subscribed-apps {
+  font-size: 0.9rem;
+  margin: 0.5rem 0;
+}
+
+.app-id {
+  color: var(--p-text-muted-color);
 }
 
 .loading {

@@ -1,15 +1,14 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useCredentialsStore } from '../stores/credentials'
-import { getPages, getPageSubscribedApps, subscribePageApp, PAGE_SUBSCRIBED_FIELDS, GraphError } from '../services/facebook'
-import type { PageInfo, SubscribedApp } from '../types/facebook'
+import { getPages, getPageSubscribedApps, getPageIgAccount, subscribePageApp, PAGE_SUBSCRIBED_FIELDS, GraphError } from '../services/facebook'
+import type { PageInfo, SubscribedApp, IgAccount } from '../types/facebook'
 import Tag from 'primevue/tag'
 import Button from 'primevue/button'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Message from 'primevue/message'
 import ProgressSpinner from 'primevue/progressspinner'
-import vTooltip from 'primevue/tooltip'
 
 const emit = defineEmits<{
   missing: [pageId: string, pageToken: string]
@@ -23,13 +22,18 @@ onBeforeUnmount(() => { active.value = false })
 interface PageWithStatus extends PageInfo {
   subscriptionStatus: 'full' | 'partial' | 'none' | null
   missingFields: string[]
+  igAccount: IgAccount | null
   subscribing: boolean
   error: string
 }
 
+const expectedFields = [...PAGE_SUBSCRIBED_FIELDS]
+
 const pages = ref<PageWithStatus[]>([])
 const loading = ref(true)
 const error = ref('')
+
+const hasAnyIg = computed(() => pages.value.some((p) => p.igAccount))
 
 function humanizeError(e: unknown): string {
   if (e instanceof GraphError) {
@@ -66,6 +70,7 @@ async function loadPages() {
       ...p,
       subscriptionStatus: null,
       missingFields: [],
+      igAccount: null,
       subscribing: false,
       error: '',
     }))
@@ -73,14 +78,24 @@ async function loadPages() {
     await Promise.all(
       pages.value.map(async (page) => {
         try {
-          const apps = await getPageSubscribedApps(page.id, page.access_token)
+          const [appsResult, igResult] = await Promise.allSettled([
+            getPageSubscribedApps(page.id, page.access_token),
+            getPageIgAccount(page.id, credentials.token),
+          ])
           if (!active.value || page.subscribing) return
-          const { status, missingFields } = evaluateSubscription(apps)
-          page.subscriptionStatus = status
-          page.missingFields = missingFields
-          if (status !== 'full') {
-            emit('missing', page.id, page.access_token)
+
+          if (appsResult.status === 'fulfilled') {
+            const { status, missingFields } = evaluateSubscription(appsResult.value)
+            page.subscriptionStatus = status
+            page.missingFields = missingFields
+            if (status !== 'full') {
+              emit('missing', page.id, page.access_token)
+            }
+          } else {
+            page.error = humanizeError(appsResult.reason)
           }
+
+          page.igAccount = igResult.status === 'fulfilled' ? igResult.value : null
         } catch (e) {
           if (!active.value) return
           page.error = humanizeError(e)
@@ -136,6 +151,14 @@ onMounted(loadPages)
       <Column field="name" header="Page Name" />
       <Column field="id" header="ID" />
       <Column field="category" header="Category" />
+      <Column v-if="hasAnyIg" header="Instagram">
+        <template #body="{ data }">
+          <span v-if="data.igAccount">
+            {{ data.igAccount.username ?? data.igAccount.name ?? data.igAccount.id }}
+          </span>
+          <span v-else class="text-muted">—</span>
+        </template>
+      </Column>
       <Column header="Subscription">
         <template #body="{ data }">
           <Tag
@@ -146,11 +169,19 @@ onMounted(loadPages)
           />
           <Tag
             v-else-if="data.subscriptionStatus === 'partial'"
-            v-tooltip.top="'Missing: ' + data.missingFields.join(', ')"
             severity="warn"
             value="Partial"
             icon="pi pi-exclamation-triangle"
           />
+          <div v-if="data.subscriptionStatus === 'partial'" class="field-tags">
+            <Tag
+              v-for="field in expectedFields"
+              :key="field"
+              :value="field"
+              :severity="data.missingFields.includes(field) ? 'danger' : 'secondary'"
+              class="field-tag"
+            />
+          </div>
           <Tag
             v-else-if="data.subscriptionStatus === 'none'"
             severity="danger"
@@ -189,5 +220,20 @@ onMounted(loadPages)
 
 .inline-error {
   margin-top: 0.25rem;
+}
+
+.field-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  margin-top: 0.25rem;
+}
+
+.field-tag {
+  font-size: 0.7rem;
+}
+
+.text-muted {
+  color: var(--p-text-muted-color);
 }
 </style>
