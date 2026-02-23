@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCredentialsStore } from '../stores/credentials'
 import InputText from 'primevue/inputtext'
@@ -9,9 +9,20 @@ import Button from 'primevue/button'
 const router = useRouter()
 const credentials = useCredentialsStore()
 
-const appId = ref('')
-const appSecret = ref('')
-const token = ref('')
+const appId = ref(credentials.appId)
+const appSecret = ref(credentials.appSecret)
+const token = ref(credentials.token)
+
+const hasAnyValue = computed(() => {
+  return appId.value.trim().length > 0 || appSecret.value.trim().length > 0 || token.value.trim().length > 0
+})
+
+function clearAll() {
+  appId.value = ''
+  appSecret.value = ''
+  token.value = ''
+  credentials.clear()
+}
 
 function startDiagnosis() {
   credentials.appId = appId.value.trim()
@@ -73,6 +84,17 @@ function startDiagnosis() {
         class="start-button"
         @click="startDiagnosis"
       />
+      <div class="clear-wrapper">
+        <Button
+          label="Clear all"
+          icon="pi pi-times"
+          severity="secondary"
+          text
+          size="small"
+          :disabled="!hasAnyValue"
+          @click="clearAll"
+        />
+      </div>
 
       <p class="hint">
         <i class="pi pi-lock" />
@@ -121,6 +143,11 @@ h1 {
 .start-button {
   width: 100%;
   margin-top: 0.5rem;
+}
+
+.clear-wrapper {
+  text-align: center;
+  margin-top: 0.75rem;
 }
 
 .hint {

@@ -88,7 +88,6 @@ async function refreshAll() {
 }
 
 function goBack() {
-  credentials.clear()
   router.push({ name: 'credentials' })
 }
 

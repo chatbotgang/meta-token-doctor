@@ -7,7 +7,7 @@
 - **File:** `src/views/CredentialsView.vue`
 - **Route:** `/`
 - **Purpose:** Entry page — collects App ID, App Secret, and Access Token
-- **Behavior:** Trims inputs, writes to credentials store, navigates to `/dashboard`
+- **Behavior:** Initializes form fields from credentials store (preserves values on back-navigation), trims inputs on submit, writes to store, navigates to `/dashboard`. "Clear all" button resets form and store; disabled when all fields are empty.
 
 ### DiagnosticView
 
@@ -15,7 +15,7 @@
 - **Route:** `/dashboard`
 - **Purpose:** Main orchestrator — loads token info and app subscriptions, renders all diagnostic sections in an Accordion
 - **State:** Manages `missingWabas` and `missingPages` arrays aggregated from child emits
-- **Actions:** Refresh All (reloads token + subscriptions, increments `refreshKey` to remount sections), Back (clears credentials, navigates to `/`)
+- **Actions:** Refresh All (reloads token + subscriptions, increments `refreshKey` to remount sections), Back (navigates to `/`, preserves credentials for re-editing)
 - **Note:** `refreshKey` is passed as `:key` to child sections; incrementing it forces Vue to destroy and recreate them, triggering fresh data loads via `onMounted`.
 
 ## Components
