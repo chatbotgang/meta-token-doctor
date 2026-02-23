@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useCredentialsStore } from '../stores/credentials'
-import { getPages, getPageSubscribedApps, subscribePageApp, GraphError } from '../services/facebook'
-import type { PageInfo } from '../types/facebook'
+import { getPages, getPageSubscribedApps, subscribePageApp, PAGE_SUBSCRIBED_FIELDS, GraphError } from '../services/facebook'
+import type { PageInfo, SubscribedApp } from '../types/facebook'
 import Tag from 'primevue/tag'
 import Button from 'primevue/button'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Message from 'primevue/message'
 import ProgressSpinner from 'primevue/progressspinner'
+import vTooltip from 'primevue/tooltip'
 
 const emit = defineEmits<{
   missing: [pageId: string, pageToken: string]
@@ -20,7 +21,8 @@ const active = ref(true)
 onBeforeUnmount(() => { active.value = false })
 
 interface PageWithStatus extends PageInfo {
-  subscribed: boolean | null
+  subscriptionStatus: 'full' | 'partial' | 'none' | null
+  missingFields: string[]
   subscribing: boolean
   error: string
 }
@@ -37,6 +39,24 @@ function humanizeError(e: unknown): string {
   return e instanceof Error ? e.message : String(e)
 }
 
+function evaluateSubscription(apps: SubscribedApp[]): { status: 'full' | 'partial' | 'none'; missingFields: string[] } {
+  if (apps.length === 0) {
+    return { status: 'none', missingFields: [] }
+  }
+  const ourApp = credentials.appId
+    ? apps.find((a) => a.id === credentials.appId)
+    : apps[0]
+  if (!ourApp) {
+    return { status: 'none', missingFields: [] }
+  }
+  const actualFields = new Set(ourApp.subscribed_fields ?? [])
+  const missing = PAGE_SUBSCRIBED_FIELDS.filter((f) => !actualFields.has(f))
+  if (missing.length > 0) {
+    return { status: 'partial', missingFields: missing }
+  }
+  return { status: 'full', missingFields: [] }
+}
+
 async function loadPages() {
   loading.value = true
   error.value = ''
@@ -44,7 +64,8 @@ async function loadPages() {
     const raw = await getPages(credentials.token)
     pages.value = raw.map((p) => ({
       ...p,
-      subscribed: null,
+      subscriptionStatus: null,
+      missingFields: [],
       subscribing: false,
       error: '',
     }))
@@ -53,9 +74,11 @@ async function loadPages() {
       pages.value.map(async (page) => {
         try {
           const apps = await getPageSubscribedApps(page.id, page.access_token)
-          if (!active.value) return
-          page.subscribed = apps.length > 0
-          if (!page.subscribed) {
+          if (!active.value || page.subscribing) return
+          const { status, missingFields } = evaluateSubscription(apps)
+          page.subscriptionStatus = status
+          page.missingFields = missingFields
+          if (status !== 'full') {
             emit('missing', page.id, page.access_token)
           }
         } catch (e) {
@@ -76,8 +99,14 @@ async function doSubscribe(page: PageWithStatus) {
   page.error = ''
   try {
     await subscribePageApp(page.id, page.access_token)
-    page.subscribed = true
-    emit('subscribed', page.id)
+    const apps = await getPageSubscribedApps(page.id, page.access_token)
+    if (!active.value) return
+    const { status, missingFields } = evaluateSubscription(apps)
+    page.subscriptionStatus = status
+    page.missingFields = missingFields
+    if (status === 'full') {
+      emit('subscribed', page.id)
+    }
   } catch (e) {
     page.error = humanizeError(e)
   } finally {
@@ -110,10 +139,23 @@ onMounted(loadPages)
       <Column header="Subscription">
         <template #body="{ data }">
           <Tag
-            v-if="data.subscribed !== null"
-            :severity="data.subscribed ? 'success' : 'danger'"
-            :value="data.subscribed ? 'Subscribed' : 'Not Subscribed'"
-            :icon="data.subscribed ? 'pi pi-check' : 'pi pi-times'"
+            v-if="data.subscriptionStatus === 'full'"
+            severity="success"
+            value="Subscribed"
+            icon="pi pi-check"
+          />
+          <Tag
+            v-else-if="data.subscriptionStatus === 'partial'"
+            v-tooltip.top="'Missing: ' + data.missingFields.join(', ')"
+            severity="warn"
+            value="Partial"
+            icon="pi pi-exclamation-triangle"
+          />
+          <Tag
+            v-else-if="data.subscriptionStatus === 'none'"
+            severity="danger"
+            value="Not Subscribed"
+            icon="pi pi-times"
           />
           <ProgressSpinner v-else style="width: 1rem; height: 1rem" />
         </template>
@@ -121,7 +163,7 @@ onMounted(loadPages)
       <Column header="Action">
         <template #body="{ data }">
           <Button
-            v-if="data.subscribed === false"
+            v-if="data.subscriptionStatus === 'none' || data.subscriptionStatus === 'partial'"
             label="Subscribe"
             icon="pi pi-plus"
             size="small"

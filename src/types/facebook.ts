@@ -38,6 +38,9 @@ export interface WebhookField {
 }
 
 export interface SubscribedApp {
+  id?: string
+  name?: string
+  subscribed_fields?: string[]
   whatsapp_business_api_data?: {
     id: string
     link: string

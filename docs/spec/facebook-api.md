@@ -49,7 +49,7 @@ class GraphError extends Error {
 | `subscribeWaba` | POST | `/{wabaId}/subscribed_apps` | User token | `{ success: boolean }` |
 | `getPhoneNumbers` | GET | `/{wabaId}/phone_numbers?fields={PHONE_FIELDS}` | User token | `PhoneNumber[]` |
 | `getPages` | GET | `/me/accounts` | User token | `PageInfo[]` |
-| `getPageSubscribedApps` | GET | `/{pageId}/subscribed_apps` | Page token | `SubscribedApp[]` |
+| `getPageSubscribedApps` | GET | `/{pageId}/subscribed_apps?fields=id,name,subscribed_fields` | Page token | `SubscribedApp[]` |
 | `subscribePageApp` | POST | `/{pageId}/subscribed_apps?subscribed_fields={PAGE_SUBSCRIBED_FIELDS}` | Page token | `{ success: boolean }` |
 
 ## Field Constants
@@ -77,7 +77,7 @@ messaging_limit_tier
 messages, message_reactions, messaging_postbacks, message_reads, standby
 ```
 
-Matches the production backend (interlude). Required since Graph API v3.2.
+Exported as `string[]` (`PAGE_SUBSCRIBED_FIELDS`). Used by `subscribePageApp` (joined with `,`) and `PageSection` (compared against `subscribed_fields` in response). Matches the production backend (interlude). Required since Graph API v3.2.
 
 ## WABA Discovery
 

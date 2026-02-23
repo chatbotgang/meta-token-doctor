@@ -53,7 +53,9 @@
 - **File:** `src/components/PageSection.vue`
 - **Props:** none
 - **Emits:** `missing(pageId, pageToken)`, `subscribed(pageId)`
-- **Purpose:** Loads pages from `/me/accounts`, checks each page's subscription status, shows Subscribe button per page. Only rendered by DiagnosticView when the token has `pages_show_list` or `pages_manage_metadata` scope (guard is `v-if="hasPageScope"` in DiagnosticView, not in PageSection itself). Uses `onBeforeUnmount` guard.
+- **Purpose:** Loads pages from `/me/accounts`, checks each page's subscription status via field-level comparison against `PAGE_SUBSCRIBED_FIELDS`, shows Subscribe button per page. Only rendered by DiagnosticView when the token has `pages_show_list` or `pages_manage_metadata` scope (guard is `v-if="hasPageScope"` in DiagnosticView, not in PageSection itself). Uses `onBeforeUnmount` guard.
+- **Subscription tri-state:** `subscriptionStatus` is `'full'` (green "Subscribed"), `'partial'` (yellow "Partial" with tooltip listing missing fields), or `'none'` (red "Not Subscribed"). `null` means still loading.
+- **Emit behavior:** `missing` fires for both `'none'` and `'partial'` status — re-subscribing with correct fields fixes both cases. FixAllButton label says "Missing Subscriptions" which covers partial pages; this is acceptable.
 - **Note:** The `missing` emit includes `pageToken` because page tokens come from the `/me/accounts` response and are not stored centrally — the token must travel alongside the page ID for subscription operations.
 
 ### FixAllButton
@@ -87,4 +89,4 @@ DiagnosticView
 
 ## PrimeVue Components Used
 
-Accordion, AccordionPanel, AccordionHeader, AccordionContent, Button, Column, DataTable, InputText, Message, Password, ProgressSpinner, Tag
+Accordion, AccordionPanel, AccordionHeader, AccordionContent, Button, Column, DataTable, InputText, Message, Password, ProgressSpinner, Tag, Tooltip (directive)
