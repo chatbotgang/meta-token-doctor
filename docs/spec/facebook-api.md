@@ -45,7 +45,7 @@ class GraphError extends Error {
 | `getBusinesses` | GET | `/me/businesses` | User token | `BusinessInfo[]` |
 | `getOwnedWabas` | GET | `/{businessId}/owned_whatsapp_business_accounts` | User token | `WabaInfo[]` |
 | `getWabaInfo` | GET | `/{wabaId}?fields={WABA_FIELDS}` | User token | `WabaInfo` |
-| `getWabaSubscribedApps` | GET | `/{wabaId}/subscribed_apps?fields=id,name` | User token | `SubscribedApp[]` |
+| `getWabaSubscribedApps` | GET | `/{wabaId}/subscribed_apps` | User token | `SubscribedApp[]` (flattened from `whatsapp_business_api_data`) |
 | `subscribeWaba` | POST | `/{wabaId}/subscribed_apps` | User token | `void` (throws if `success` is false) |
 | `getPhoneNumbers` | GET | `/{wabaId}/phone_numbers?fields={PHONE_FIELDS}` | User token | `PhoneNumber[]` |
 | `getPages` | GET | `/me/accounts` | User token | `PageInfo[]` |
@@ -83,7 +83,7 @@ Exported as `string[]` (`PAGE_SUBSCRIBED_FIELDS`). Used by `subscribePageApp` (j
 ## Notes
 
 - `getPageIgAccount` returns `null` for expected Graph API errors (code 200 — no IG permission, code 100 — no IG account). Unexpected errors (network, token expiry, rate limiting) propagate to the caller. `PageSection` uses `Promise.allSettled` so IG failures do not block subscription checks.
-- `getWabaSubscribedApps` requests `fields=id,name` to ensure app identity is returned. The `whatsapp_business_api_data` nested field (previously included by default) is no longer returned.
+- `getWabaSubscribedApps` does NOT use `fields` param — WABA subscribed apps nest data under `whatsapp_business_api_data` (unlike Page subscribed apps which are flat). The service function unwraps this to a flat `SubscribedApp` for consumers. Adding `fields=id,name` causes empty results because those fields don't exist at the top level.
 
 ## WABA Discovery
 

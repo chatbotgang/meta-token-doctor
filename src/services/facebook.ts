@@ -106,10 +106,14 @@ export async function getWabaSubscribedApps(
   wabaId: string,
   token: string,
 ): Promise<SubscribedApp[]> {
+  // WABA subscribed_apps nests app info in whatsapp_business_api_data (unlike Page subscribed_apps)
   const data = await graphFetch<{ data: SubscribedApp[] }>(
-    `${API_BASE}/${wabaId}/subscribed_apps?fields=id,name&access_token=${encodeURIComponent(token)}`,
+    `${API_BASE}/${wabaId}/subscribed_apps?access_token=${encodeURIComponent(token)}`,
   )
-  return data.data
+  return data.data.map((item) => ({
+    id: item.whatsapp_business_api_data?.id ?? item.id,
+    name: item.whatsapp_business_api_data?.name ?? item.name,
+  }))
 }
 
 export async function subscribeWaba(
