@@ -46,11 +46,11 @@ class GraphError extends Error {
 | `getOwnedWabas` | GET | `/{businessId}/owned_whatsapp_business_accounts` | User token | `WabaInfo[]` |
 | `getWabaInfo` | GET | `/{wabaId}?fields={WABA_FIELDS}` | User token | `WabaInfo` |
 | `getWabaSubscribedApps` | GET | `/{wabaId}/subscribed_apps?fields=id,name` | User token | `SubscribedApp[]` |
-| `subscribeWaba` | POST | `/{wabaId}/subscribed_apps` | User token | `{ success: boolean }` |
+| `subscribeWaba` | POST | `/{wabaId}/subscribed_apps` | User token | `void` (throws if `success` is false) |
 | `getPhoneNumbers` | GET | `/{wabaId}/phone_numbers?fields={PHONE_FIELDS}` | User token | `PhoneNumber[]` |
 | `getPages` | GET | `/me/accounts` | User token | `PageInfo[]` |
 | `getPageSubscribedApps` | GET | `/{pageId}/subscribed_apps?fields=id,name,subscribed_fields` | Page token | `SubscribedApp[]` |
-| `subscribePageApp` | POST | `/{pageId}/subscribed_apps?subscribed_fields={PAGE_SUBSCRIBED_FIELDS}` | Page token | `{ success: boolean }` |
+| `subscribePageApp` | POST | `/{pageId}/subscribed_apps?subscribed_fields={PAGE_SUBSCRIBED_FIELDS}` | Page token | `void` (throws if `success` is false) |
 | `getPageIgAccount` | GET | `/{pageId}?fields=instagram_business_account{id,name,username}` | User token | `IgAccount \| null` |
 
 ## Field Constants

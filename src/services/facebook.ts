@@ -115,11 +115,14 @@ export async function getWabaSubscribedApps(
 export async function subscribeWaba(
   wabaId: string,
   token: string,
-): Promise<{ success: boolean }> {
-  return graphFetch<{ success: boolean }>(
+): Promise<void> {
+  const data = await graphFetch<{ success: boolean }>(
     `${API_BASE}/${wabaId}/subscribed_apps?access_token=${encodeURIComponent(token)}`,
     { method: 'POST' },
   )
+  if (!data.success) {
+    throw new GraphError('WABA subscribe returned success: false', 0)
+  }
 }
 
 const PHONE_FIELDS = 'id,display_phone_number,verified_name,quality_rating,code_verification_status,platform_type,throughput,is_official_business_account,account_mode,is_pin_enabled,name_status,new_name_status,status,search_visibility,messaging_limit_tier'
@@ -179,9 +182,12 @@ export async function getPageIgAccount(
 export async function subscribePageApp(
   pageId: string,
   pageToken: string,
-): Promise<{ success: boolean }> {
-  return graphFetch<{ success: boolean }>(
+): Promise<void> {
+  const data = await graphFetch<{ success: boolean }>(
     `${API_BASE}/${pageId}/subscribed_apps?subscribed_fields=${PAGE_SUBSCRIBED_FIELDS.join(',')}&access_token=${encodeURIComponent(pageToken)}`,
     { method: 'POST' },
   )
+  if (!data.success) {
+    throw new GraphError('Page subscribe returned success: false', 0)
+  }
 }

@@ -89,11 +89,13 @@ async function doSubscribe() {
   try {
     await subscribeWaba(props.wabaId, credentials.token)
     if (!active.value) return
-    isSubscribed.value = true
-    emit('subscribed', props.wabaId)
-    try {
-      subscribedApps.value = await getWabaSubscribedApps(props.wabaId, credentials.token)
-    } catch { /* subscribe succeeded; app list refresh is non-critical */ }
+    const apps = await getWabaSubscribedApps(props.wabaId, credentials.token)
+    if (!active.value) return
+    subscribedApps.value = apps
+    isSubscribed.value = apps.length > 0
+    if (isSubscribed.value) {
+      emit('subscribed', props.wabaId)
+    }
   } catch (e) {
     error.value = humanizeError(e)
   } finally {
