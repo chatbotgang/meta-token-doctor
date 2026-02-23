@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCredentialsStore } from '../stores/credentials'
-import { debugToken, getAppSubscriptions } from '../services/facebook'
+import { debugToken, getAppSubscriptions, GraphError } from '../services/facebook'
 import type { DebugTokenData, WebhookSubscription } from '../types/facebook'
 import Button from 'primevue/button'
 import Accordion from 'primevue/accordion'
@@ -62,7 +62,11 @@ async function loadTokenInfo() {
       (tokenType === 'USER' || tokenType === 'SYSTEM_USER') &&
       (scopes.includes('pages_show_list') || scopes.includes('pages_manage_metadata'))
   } catch (e) {
-    tokenError.value = e instanceof Error ? e.message : String(e)
+    if (e instanceof GraphError && e.message.includes('input_token did not match')) {
+      tokenError.value = 'App ID mismatch — the token was issued by a different app. Go back and enter the correct App ID and App Secret to enable full diagnostics.'
+    } else {
+      tokenError.value = e instanceof Error ? e.message : String(e)
+    }
   } finally {
     tokenLoading.value = false
   }
