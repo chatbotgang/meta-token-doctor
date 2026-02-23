@@ -57,8 +57,10 @@ async function loadTokenInfo() {
   try {
     tokenData.value = await debugToken(credentials.token, credentials.appToken)
     const scopes = tokenData.value.scopes ?? []
+    const tokenType = tokenData.value.type?.toUpperCase()
     hasPageScope.value =
-      scopes.includes('pages_show_list') || scopes.includes('pages_manage_metadata')
+      (tokenType === 'USER' || tokenType === 'SYSTEM_USER') &&
+      (scopes.includes('pages_show_list') || scopes.includes('pages_manage_metadata'))
   } catch (e) {
     tokenError.value = e instanceof Error ? e.message : String(e)
   } finally {
