@@ -164,6 +164,7 @@ onMounted(() => {
           <WabaSection
             :key="refreshKey"
             :token-data="tokenData"
+            :token-loaded="!tokenLoading"
             @missing="registerMissingWaba"
             @subscribed="unregisterMissingWaba"
           />

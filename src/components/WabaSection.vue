@@ -11,6 +11,7 @@ import ProgressSpinner from 'primevue/progressspinner'
 
 const props = defineProps<{
   tokenData: DebugTokenData | null
+  tokenLoaded: boolean
 }>()
 
 const emit = defineEmits<{
@@ -83,9 +84,9 @@ function addManualWaba() {
 }
 
 watch(
-  () => props.tokenData,
-  (val) => {
-    if (val) discoverWabas()
+  () => props.tokenLoaded,
+  (loaded) => {
+    if (loaded) discoverWabas()
   },
   { immediate: true },
 )

@@ -43,9 +43,9 @@
 ### WabaSection
 
 - **File:** `src/components/WabaSection.vue`
-- **Props:** `tokenData: DebugTokenData | null`
+- **Props:** `tokenData: DebugTokenData | null`, `tokenLoaded: boolean`
 - **Emits:** `missing(wabaId)`, `subscribed(wabaId)`
-- **Purpose:** Discovers WABAs (from granular scopes + business traversal), renders a WabaCard per WABA, provides manual WABA ID input
+- **Purpose:** Discovers WABAs (from granular scopes + business traversal), renders a WabaCard per WABA, provides manual WABA ID input. Watches `tokenLoaded` (not `tokenData`) to trigger discovery — ensures business-based discovery runs even when `debug_token` fails.
 
 ### WabaCard
 
