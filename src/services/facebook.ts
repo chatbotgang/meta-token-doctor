@@ -152,12 +152,14 @@ export async function getPageSubscribedApps(
   return data.data
 }
 
+const PAGE_SUBSCRIBED_FIELDS = 'messages,message_reactions,messaging_postbacks,message_reads,standby'
+
 export async function subscribePageApp(
   pageId: string,
   pageToken: string,
 ): Promise<{ success: boolean }> {
   return graphFetch<{ success: boolean }>(
-    `${API_BASE}/${pageId}/subscribed_apps?access_token=${encodeURIComponent(pageToken)}`,
+    `${API_BASE}/${pageId}/subscribed_apps?subscribed_fields=${PAGE_SUBSCRIBED_FIELDS}&access_token=${encodeURIComponent(pageToken)}`,
     { method: 'POST' },
   )
 }
