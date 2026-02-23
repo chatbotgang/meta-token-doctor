@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useCredentialsStore } from '../stores/credentials'
+import { useCredentialsStore, type StorageMode } from '../stores/credentials'
 import InputText from 'primevue/inputtext'
 import Password from 'primevue/password'
 import Button from 'primevue/button'
+import SelectButton from 'primevue/selectbutton'
+import Dialog from 'primevue/dialog'
 
 const router = useRouter()
 const credentials = useCredentialsStore()
@@ -13,9 +15,62 @@ const appId = ref(credentials.appId)
 const appSecret = ref(credentials.appSecret)
 const token = ref(credentials.token)
 
+const storageModeOptions = [
+  { label: 'None', value: 'none' },
+  { label: 'Session', value: 'session' },
+  { label: 'Local', value: 'local' },
+]
+
+const showLocalWarning = ref(false)
+const selectButtonKey = ref(0)
+
 const hasAnyValue = computed(() => {
-  return appId.value.trim().length > 0 || appSecret.value.trim().length > 0 || token.value.trim().length > 0
+  return (
+    appId.value.trim().length > 0 ||
+    appSecret.value.trim().length > 0 ||
+    token.value.trim().length > 0 ||
+    credentials.storageMode !== 'none'
+  )
 })
+
+const hintText = computed(() => {
+  switch (credentials.storageMode) {
+    case 'session':
+      return 'Credentials are stored in session storage and cleared when the tab closes.'
+    case 'local':
+      return 'Credentials are stored in local storage and persist until manually cleared.'
+    default:
+      return 'Credentials are stored in browser memory only and never sent to any server.'
+  }
+})
+
+function syncToStore() {
+  credentials.appId = appId.value.trim()
+  credentials.appSecret = appSecret.value.trim()
+  credentials.token = token.value.trim()
+}
+
+function onStorageModeChange(newMode: StorageMode) {
+  if (newMode === credentials.storageMode) return
+
+  if (newMode === 'local') {
+    showLocalWarning.value = true
+    return
+  }
+
+  syncToStore()
+  credentials.setStorageMode(newMode)
+}
+
+function onLocalWarningHide() {
+  selectButtonKey.value++
+}
+
+function confirmLocalStorage() {
+  syncToStore()
+  credentials.setStorageMode('local')
+  showLocalWarning.value = false
+}
 
 function clearAll() {
   appId.value = ''
@@ -25,9 +80,8 @@ function clearAll() {
 }
 
 function startDiagnosis() {
-  credentials.appId = appId.value.trim()
-  credentials.appSecret = appSecret.value.trim()
-  credentials.token = token.value.trim()
+  syncToStore()
+  credentials.saveToStorage()
   router.push({ name: 'dashboard' })
 }
 </script>
@@ -42,6 +96,19 @@ function startDiagnosis() {
       <p class="subtitle">
         Diagnose Facebook/WhatsApp/Instagram webhook subscription issues
       </p>
+
+      <div class="storage-mode">
+        <label>Credential Storage</label>
+        <SelectButton
+          :key="selectButtonKey"
+          :model-value="credentials.storageMode"
+          :options="storageModeOptions"
+          option-label="label"
+          option-value="value"
+          :allow-empty="false"
+          @update:model-value="onStorageModeChange"
+        />
+      </div>
 
       <div class="field">
         <label for="appId">App ID</label>
@@ -98,9 +165,39 @@ function startDiagnosis() {
 
       <p class="hint">
         <i class="pi pi-lock" />
-        Credentials are stored in browser memory only and never sent to any server.
+        {{ hintText }}
       </p>
     </div>
+
+    <Dialog
+      v-model:visible="showLocalWarning"
+      header="Local Storage Warning"
+      :modal="true"
+      :closable="true"
+      :style="{ maxWidth: '28rem' }"
+      @hide="onLocalWarningHide"
+    >
+      <ul class="local-warning-list">
+        <li>Credentials will persist on disk until you manually clear them.</li>
+        <li>
+          GitHub Pages apps on <code>chatbotgang.github.io</code> share the same
+          origin — other apps on this domain could potentially read these values.
+        </li>
+      </ul>
+      <template #footer>
+        <Button
+          label="Cancel"
+          severity="secondary"
+          text
+          @click="showLocalWarning = false"
+        />
+        <Button
+          label="Use Local Storage"
+          severity="warn"
+          @click="confirmLocalStorage"
+        />
+      </template>
+    </Dialog>
   </div>
 </template>
 
@@ -130,6 +227,16 @@ h1 {
   margin: 0 0 2rem;
 }
 
+.storage-mode {
+  margin-bottom: 1.5rem;
+}
+
+.storage-mode label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
 .field {
   margin-bottom: 1.25rem;
 }
@@ -157,5 +264,14 @@ h1 {
   display: flex;
   align-items: center;
   gap: 0.4rem;
+}
+
+.local-warning-list {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.local-warning-list li + li {
+  margin-top: 0.5rem;
 }
 </style>
