@@ -50,7 +50,7 @@ class GraphError extends Error {
 | `getPhoneNumbers` | GET | `/{wabaId}/phone_numbers?fields={PHONE_FIELDS}` | User token | `PhoneNumber[]` |
 | `getPages` | GET | `/me/accounts` | User token | `PageInfo[]` |
 | `getPageSubscribedApps` | GET | `/{pageId}/subscribed_apps` | Page token | `SubscribedApp[]` |
-| `subscribePageApp` | POST | `/{pageId}/subscribed_apps` | Page token | `{ success: boolean }` |
+| `subscribePageApp` | POST | `/{pageId}/subscribed_apps?subscribed_fields={PAGE_SUBSCRIBED_FIELDS}` | Page token | `{ success: boolean }` |
 
 ## Field Constants
 
@@ -70,6 +70,14 @@ is_official_business_account, account_mode, is_pin_enabled,
 name_status, new_name_status, status, search_visibility,
 messaging_limit_tier
 ```
+
+### `PAGE_SUBSCRIBED_FIELDS`
+
+```
+messages, message_reactions, messaging_postbacks, message_reads, standby
+```
+
+Matches the production backend (interlude). Required since Graph API v3.2.
 
 ## WABA Discovery
 
