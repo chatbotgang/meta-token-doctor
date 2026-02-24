@@ -141,6 +141,12 @@ export async function getPhoneNumbers(
   return data.data
 }
 
+export async function getPageInfo(token: string): Promise<{ id: string; name: string; category?: string }> {
+  return graphFetch<{ id: string; name: string; category?: string }>(
+    `${API_BASE}/me?fields=id,name,category&access_token=${encodeURIComponent(token)}`,
+  )
+}
+
 export async function getPages(
   token: string,
 ): Promise<PageInfo[]> {
@@ -163,6 +169,10 @@ export async function getPageSubscribedApps(
 export const PAGE_SUBSCRIBED_FIELDS = [
   'messages', 'message_reactions', 'messaging_postbacks',
   'message_reads', 'standby',
+] as const
+
+export const IG_SUBSCRIBED_FIELDS = [
+  'messages', 'message_reactions', 'messaging_postbacks',
 ] as const
 
 export async function getPageIgAccount(

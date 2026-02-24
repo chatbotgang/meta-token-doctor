@@ -48,10 +48,21 @@ class GraphError extends Error {
 | `getWabaSubscribedApps` | GET | `/{wabaId}/subscribed_apps` | User token | `SubscribedApp[]` (flattened from `whatsapp_business_api_data`) |
 | `subscribeWaba` | POST | `/{wabaId}/subscribed_apps` | User token | `void` (throws if `success` is false) |
 | `getPhoneNumbers` | GET | `/{wabaId}/phone_numbers?fields={PHONE_FIELDS}` | User token | `PhoneNumber[]` |
+| `getPageInfo` | GET | `/me?fields=id,name,category` | Page token | `{ id, name, category? }` |
 | `getPages` | GET | `/me/accounts` | User token | `PageInfo[]` |
 | `getPageSubscribedApps` | GET | `/{pageId}/subscribed_apps?fields=id,name,subscribed_fields` | Page token | `SubscribedApp[]` |
 | `subscribePageApp` | POST | `/{pageId}/subscribed_apps?subscribed_fields={PAGE_SUBSCRIBED_FIELDS}` | Page token | `void` (throws if `success` is false) |
 | `getPageIgAccount` | GET | `/{pageId}?fields=instagram_business_account{id,name,username}` | User token | `IgAccount \| null` |
+
+## Subscription Requirements by Platform
+
+| Platform | Endpoint | Fields | Notes |
+|----------|----------|--------|-------|
+| FB Messenger | `POST /{pageId}/subscribed_apps` | `messages`, `message_reactions`, `messaging_postbacks`, `message_reads`, `standby` | Field-level; matches `PAGE_SUBSCRIBED_FIELDS` |
+| Instagram | `POST /{pageId}/subscribed_apps` (same page) | `messages`, `message_reactions`, `messaging_postbacks` | Strict subset of FB fields; matches `IG_SUBSCRIBED_FIELDS` |
+| WhatsApp | `POST /{wabaId}/subscribed_apps` | _(none — bare POST)_ | Binary: app is subscribed or not; no field-level detail |
+
+IG fields are a strict subset of FB page fields. A fully-subscribed page (all `PAGE_SUBSCRIBED_FIELDS`) covers both FB Messenger and Instagram.
 
 ## Field Constants
 
@@ -80,10 +91,19 @@ messages, message_reactions, messaging_postbacks, message_reads, standby
 
 Exported as `string[]` (`PAGE_SUBSCRIBED_FIELDS`). Used by `subscribePageApp` (joined with `,`) and `PageSection` (compared against `subscribed_fields` in response). Matches the production backend (interlude). Required since Graph API v3.2.
 
+### `IG_SUBSCRIBED_FIELDS`
+
+```
+messages, message_reactions, messaging_postbacks
+```
+
+Exported as `string[]` (`IG_SUBSCRIBED_FIELDS`). Strict subset of `PAGE_SUBSCRIBED_FIELDS` — the three fields required for Instagram messaging. Used by `PageSection` to derive IG subscription status from existing page subscription data.
+
 ## Notes
 
 - `getPageIgAccount` returns `null` for expected Graph API errors (code 200 — no IG permission, code 100 — no IG account). Unexpected errors (network, token expiry, rate limiting) propagate to the caller. `PageSection` uses `Promise.allSettled` so IG failures do not block subscription checks.
 - `getWabaSubscribedApps` does NOT use `fields` param — WABA subscribed apps nest data under `whatsapp_business_api_data` (unlike Page subscribed apps which are flat). The service function unwraps this to a flat `SubscribedApp` for consumers. Adding `fields=id,name` causes empty results because those fields don't exist at the top level.
+- **WABA subscription is binary** — `subscribeWaba` sends a bare `POST /{wabaId}/subscribed_apps` with no fields parameter. The API returns `{ success: true/false }`. Unlike Page subscriptions, there is no field-level granularity; `WabaCard` shows a simple subscribed/not-subscribed status.
 
 ## WABA Discovery
 

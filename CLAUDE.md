@@ -75,4 +75,5 @@ npm run preview   # Preview production build
 - **Page tokens** come from `/me/accounts` response, not user input — used for page-level subscriptions
 - **`onBeforeUnmount` guard** in `WabaCard` and `PageSection` — any async-emitting child component MUST set `active = false` in `onBeforeUnmount` and check `active` before emitting, to prevent double-registration when `refreshKey` forces a remount
 - **Token validity not enforced** — the tool does not block Subscribe actions when `is_valid` is false; API calls will fail with error 190. Users should verify token validity in the TokenInfo section first
+- **`v-if/v-else` chain breaks** — inserting a standalone `v-if` between `v-else-if` siblings splits the chain. Use explicit conditions (e.g. `v-if="x == null"`) instead of `v-else` when a non-chained `v-if` sits in between
 - **Hash router** is required for GitHub Pages — no server-side routing support
