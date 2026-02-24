@@ -95,7 +95,7 @@ const rawJson = computed(() => {
       </div>
 
       <h3>Granular Scopes</h3>
-      <DataTable :value="data.granular_scopes ?? []" size="small" striped-rows>
+      <DataTable :value="data.granular_scopes ?? []" size="small" striped-rows scrollable>
         <Column field="scope" header="Scope" />
         <Column header="Target IDs">
           <template #body="{ data: row }">

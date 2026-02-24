@@ -33,6 +33,7 @@ defineProps<{
       :value="subscriptions"
       size="small"
       striped-rows
+      scrollable
       row-group-mode="subheader"
       group-rows-by="object"
       sort-field="object"

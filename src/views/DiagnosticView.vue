@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCredentialsStore } from '../stores/credentials'
 import { debugToken, getAppSubscriptions, GraphError } from '../services/facebook'
@@ -9,6 +9,7 @@ import Accordion from 'primevue/accordion'
 import AccordionPanel from 'primevue/accordionpanel'
 import AccordionHeader from 'primevue/accordionheader'
 import AccordionContent from 'primevue/accordioncontent'
+import Message from 'primevue/message'
 import TokenInfo from '../components/TokenInfo.vue'
 import AppWebhooks from '../components/AppWebhooks.vue'
 import WabaSection from '../components/WabaSection.vue'
@@ -49,7 +50,9 @@ function unregisterMissingPage(pageId: string) {
   missingPages.value = missingPages.value.filter((p) => p.id !== pageId)
 }
 
-const hasPageScope = ref(false)
+const subscribedObjects = computed(() => new Set(subscriptions.value.map((s) => s.object)))
+
+const showPageSection = ref(false)
 
 async function loadTokenInfo() {
   tokenLoading.value = true
@@ -58,9 +61,10 @@ async function loadTokenInfo() {
     tokenData.value = await debugToken(credentials.token, credentials.appToken)
     const scopes = tokenData.value.scopes ?? []
     const tokenType = tokenData.value.type?.toUpperCase()
-    hasPageScope.value =
-      (tokenType === 'USER' || tokenType === 'SYSTEM_USER') &&
-      (scopes.includes('pages_show_list') || scopes.includes('pages_manage_metadata'))
+    showPageSection.value =
+      tokenType === 'PAGE' ||
+      ((tokenType === 'USER' || tokenType === 'SYSTEM_USER') &&
+        (scopes.includes('pages_show_list') || scopes.includes('pages_manage_metadata')))
   } catch (e) {
     if (e instanceof GraphError && e.message.includes('input_token did not match')) {
       tokenError.value = 'App ID mismatch — the token was issued by a different app. Go back and enter the correct App ID and App Secret to enable full diagnostics.'
@@ -165,6 +169,9 @@ onMounted(() => {
           WhatsApp Business Accounts
         </AccordionHeader>
         <AccordionContent>
+          <Message v-if="!subsLoading && !subsError && !subscribedObjects.has('whatsapp_business_account')" severity="warn">
+            No "whatsapp_business_account" object found in app webhook subscriptions — messages won't be delivered.
+          </Message>
           <WabaSection
             :key="refreshKey"
             :token-data="tokenData"
@@ -175,14 +182,18 @@ onMounted(() => {
         </AccordionContent>
       </AccordionPanel>
 
-      <AccordionPanel v-if="hasPageScope" value="pages">
+      <AccordionPanel v-if="showPageSection" value="pages">
         <AccordionHeader>
           <i class="pi pi-facebook" />
           Pages
         </AccordionHeader>
         <AccordionContent>
+          <Message v-if="!subsLoading && !subsError && !subscribedObjects.has('page')" severity="warn">
+            No "page" object found in app webhook subscriptions — messages won't be delivered.
+          </Message>
           <PageSection
             :key="refreshKey"
+            :is-page-token="tokenData?.type?.toUpperCase() === 'PAGE'"
             @missing="registerMissingPage"
             @subscribed="unregisterMissingPage"
           />
@@ -204,6 +215,16 @@ onMounted(() => {
   max-width: 960px;
   margin: 0 auto;
   padding: 1.5rem;
+}
+
+@media (max-width: 640px) {
+  .diagnostic-view {
+    padding: 0.75rem;
+  }
+
+  .toolbar-left h1 {
+    font-size: 1rem;
+  }
 }
 
 .toolbar {

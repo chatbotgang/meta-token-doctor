@@ -21,6 +21,10 @@
 - **Route:** `/dashboard`
 - **Purpose:** Main orchestrator — loads token info and app subscriptions, renders all diagnostic sections in an Accordion
 - **State:** Manages `missingWabas` and `missingPages` arrays aggregated from child emits
+- **Cross-check warnings:** Computed `subscribedObjects` (a `Set` of object names from app webhook subscriptions). When subscriptions have loaded without error, shows `<Message severity="warn">` in the relevant AccordionContent if the required object is missing:
+  - Pages section: warns if `subscribedObjects` does not contain `'page'` — "No 'page' object found in app webhook subscriptions — messages won't be delivered."
+  - WABA section: warns if `subscribedObjects` does not contain `'whatsapp_business_account'` — "No 'whatsapp_business_account' object found in app webhook subscriptions — messages won't be delivered."
+  - Guard is `!subsLoading && !subsError` (fires even when app has zero webhooks — the most critical scenario).
 - **Actions:** Refresh All (reloads token + subscriptions, increments `refreshKey` to remount sections), Back (navigates to `/`, preserves credentials for re-editing)
 - **Note:** `refreshKey` is passed as `:key` to child sections; incrementing it forces Vue to destroy and recreate them, triggering fresh data loads via `onMounted`.
 
@@ -57,10 +61,15 @@
 ### PageSection
 
 - **File:** `src/components/PageSection.vue`
-- **Props:** none
+- **Props:** `isPageToken: boolean` (default `false`)
 - **Emits:** `missing(pageId, pageToken)`, `subscribed(pageId)`
-- **Purpose:** Loads pages from `/me/accounts`, checks each page's subscription status via field-level comparison against `PAGE_SUBSCRIBED_FIELDS`, shows Subscribe button per page. Only rendered by DiagnosticView when the token type is `USER` or `SYSTEM_USER` **and** the token has `pages_show_list` or `pages_manage_metadata` scope (guard is `v-if="hasPageScope"` in DiagnosticView, not in PageSection itself). Page tokens are excluded because `/me/accounts` is not available for page-type tokens. Uses `onBeforeUnmount` guard.
-- **Subscription tri-state:** `subscriptionStatus` is `'full'` (green "Subscribed"), `'partial'` (yellow "Partial" with field tags below — `severity='secondary'` for present, `severity='danger'` for missing), or `'none'` (red "Not Subscribed"). `null` means still loading. Instagram column appears when any page has a connected IG account (`v-if` on computed). IG data fetched per-page via `getPageIgAccount` in parallel with subscription checks.
+- **Purpose:** Loads pages and checks subscription status via field-level comparison against `PAGE_SUBSCRIBED_FIELDS`, shows Subscribe button per page. Handles two modes based on `isPageToken`:
+  - **PAGE token** (`isPageToken === true`): calls `getPageInfo(token)` to get the page's own `{ id, name, category }`, constructs a single `PageWithStatus` using the token itself as `access_token`, then checks subscriptions and IG as normal.
+  - **USER/SYSTEM_USER token** (`isPageToken === false`): existing `/me/accounts` flow — loads all pages with their individual page tokens.
+- **Visibility:** Rendered by DiagnosticView when `showPageSection` is true — either the token type is `PAGE`, or the token type is `USER`/`SYSTEM_USER` with `pages_show_list` or `pages_manage_metadata` scope (guard is `v-if="showPageSection"` in DiagnosticView, not in PageSection itself). Uses `onBeforeUnmount` guard.
+- **Subscription tri-state:** `subscriptionStatus` is `'full'` (green "Subscribed"), `'partial'` (yellow "Partial"), or `'none'` (red "Not Subscribed"). `null` means still loading. Field tags are shown for `'full'` and `'partial'` states (`severity='secondary'` for present, `severity='danger'` for missing); not shown for `'none'`. FB-only fields display with " (FB)" suffix. Subscribe button is shown for all loaded states; disabled when `'full'`. Instagram column appears when any page has a connected IG account (`v-if` on computed). IG data fetched per-page via `getPageIgAccount` in parallel with subscription checks.
+- **IG subscription status (stored, tri-state):** `igStatus` and `missingIgFields` are stored in `PageWithStatus` and updated via `updateIgStatus(page)` after subscription + IG data loads (and after `doSubscribe`). Computed from `subscriptionStatus` and `missingFields` using `igFieldsSet` (`Set<string>` of `IG_SUBSCRIBED_FIELDS`). Values: `'full'` (all IG fields present), `'partial'` (some present, some missing), `'none'` (all missing), `null` (no IG or still loading). Shown as Tag below IG username: green "Subscribed" / yellow "Partial" (with `IG_SUBSCRIBED_FIELDS` field tags) / red "Not Subscribed". Tooltip on each state explains coverage.
+- **Field platform suffixes:** In partial subscription field tags, FB-only fields (`message_reads`, `standby`) display with " (FB)" suffix to distinguish them from fields shared with Instagram.
 - **Emit behavior:** `missing` fires for both `'none'` and `'partial'` status — re-subscribing with correct fields fixes both cases. FixAllButton label says "Missing Subscriptions" which covers partial pages; this is acceptable.
 - **Note:** The `missing` emit includes `pageToken` because page tokens come from the `/me/accounts` response and are not stored centrally — the token must travel alongside the page ID for subscription operations.
 
@@ -86,7 +95,7 @@ DiagnosticView
   │   ├─ WabaSection (tokenData)
   │   │   ├─ emits missing(wabaId) → DiagnosticView.missingWabas
   │   │   └─ emits subscribed(wabaId) → removes from missingWabas
-  │   ├─ PageSection (if hasPageScope)
+  │   ├─ PageSection (if showPageSection, :is-page-token)
   │   │   ├─ emits missing(pageId, pageToken) → DiagnosticView.missingPages
   │   │   └─ emits subscribed(pageId) → removes from missingPages
   │   └─ FixAllButton (if missingWabas or missingPages exist)
