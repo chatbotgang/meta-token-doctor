@@ -194,7 +194,7 @@ onMounted(loadPages)
       No pages found for this token.
     </Message>
 
-    <DataTable v-else :value="pages" size="small" striped-rows>
+    <DataTable v-else :value="pages" size="small" striped-rows scrollable>
       <Column field="name" header="Page Name" />
       <Column field="id" header="ID" />
       <Column field="category" header="Category" />

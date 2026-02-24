@@ -206,8 +206,8 @@ function startDiagnosis() {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
-  padding: 2rem;
+  min-height: 100dvh;
+  padding: 2rem 1rem;
 }
 
 .credentials-card {

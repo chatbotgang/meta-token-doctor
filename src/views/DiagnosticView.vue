@@ -217,6 +217,16 @@ onMounted(() => {
   padding: 1.5rem;
 }
 
+@media (max-width: 640px) {
+  .diagnostic-view {
+    padding: 0.75rem;
+  }
+
+  .toolbar-left h1 {
+    font-size: 1rem;
+  }
+}
+
 .toolbar {
   display: flex;
   justify-content: space-between;

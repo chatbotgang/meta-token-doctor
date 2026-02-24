@@ -159,7 +159,7 @@ onMounted(loadData)
 
       <div v-if="phones.length > 0" class="phones-section">
         <h5>Phone Numbers</h5>
-        <DataTable :value="phones" size="small" striped-rows>
+        <DataTable :value="phones" size="small" striped-rows scrollable>
           <Column field="display_phone_number" header="Phone" />
           <Column field="verified_name" header="Verified Name" />
           <Column field="quality_rating" header="Quality" />
